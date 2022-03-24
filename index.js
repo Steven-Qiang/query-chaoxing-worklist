@@ -1,14 +1,12 @@
 /**
- * @description: 快速查询学习通作业列表 支持多账户 
+ * @description: 快速查询学习通作业列表 支持多账户
  * @create: 2022-03-20 12:24:30
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-21 08:18:01
+ * @last-modified: 2022-03-24 10:37:55
  * -----
  */
-/**
- * 单文件版本 single.js 请执行 node single
- */
+
 const fs = require('fs');
 const path = require('path');
 const qs = require('querystring');
@@ -28,17 +26,13 @@ const stream = table.createStream({
 });
 const instance = axios.create({
   headers: {
-    'User-Agent':
-      'Mozilla/5.0 (iPhone; CPU iPhone OS 13_4_1 like Mac OS X) ' +
-      // cspell-checker:disable-next-line
-      'AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ' +
-      // cspell-checker:disable-next-line
-      'ChaoXingStudy/ChaoXingStudy_3_4.4.1_ios_phone_202004111750_39 (@Kalimdor)_4375872153618237766',
+    'User-Agent': // cspell-checker:disable-next-line
+      'Mozilla/5.0 (iPhone; CPU iPhone OS 13_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ChaoXingStudy/ChaoXingStudy_3_4.4.1_ios_phone_202004111750_39 (@Kalimdor)_4375872153618237766',
   },
   validateStatus: null,
 });
 
-// 用户登录缓存文件夹
+// 用户信息存储文件夹
 const USERS_DIR = path.resolve('./user');
 fs.existsSync(USERS_DIR) || fs.mkdirSync(USERS_DIR);
 
@@ -56,6 +50,7 @@ fs.existsSync(USERS_DIR) || fs.mkdirSync(USERS_DIR);
     });
   }
 
+  await queue.onIdle();
 })();
 
 /**
@@ -211,7 +206,7 @@ async function loadCookies() {
   if (resp.username == '添加帐号') {
     resp = await inquirer.prompt([
       { type: 'input', message: '请输入用户名:', name: 'username' },
-      { type: 'input', message: '请输入密码:', name: 'password' },
+      { type: 'password', message: '请输入密码:', name: 'password' },
     ]);
     cookie = await getCookies(resp.username, resp.password);
   } else {
