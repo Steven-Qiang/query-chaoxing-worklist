@@ -3,14 +3,13 @@
  * @create: 2022-03-20 12:24:30
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-24 10:37:55
+ * @last-modified: 2022-03-25 07:58:41
  * -----
  */
 
 const fs = require('fs');
 const path = require('path');
 const qs = require('querystring');
-const Queue = require('p-queue').default;
 const axios = require('axios').default;
 const cheerio = require('cheerio');
 const table = require('table');
@@ -18,20 +17,25 @@ const colors = require('colors');
 const inquirer = require('inquirer');
 const tough = require('tough-cookie');
 const Cookie = tough.Cookie;
-const queue = new Queue({ concurrency: 3 });
 const stream = table.createStream({
   columns: [{}, {}, { width: 10, alignment: 'center' }, { width: 30 }],
   columnCount: 4,
   columnDefault: { width: 50 },
 });
+
 const instance = axios.create({
   headers: {
-    'User-Agent': // cspell-checker:disable-next-line
+    // cspell-checker:disable
+    'User-Agent':
       'Mozilla/5.0 (iPhone; CPU iPhone OS 13_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ChaoXingStudy/ChaoXingStudy_3_4.4.1_ios_phone_202004111750_39 (@Kalimdor)_4375872153618237766',
+    // cspell-checker:enable
   },
-  validateStatus: null,
+  validateStatus() {
+    return true;
+  },
 });
 
+const LOG_PREFIX = '='.repeat(20);
 // 用户信息存储文件夹
 const USERS_DIR = path.resolve('./user');
 fs.existsSync(USERS_DIR) || fs.mkdirSync(USERS_DIR);
@@ -40,17 +44,13 @@ fs.existsSync(USERS_DIR) || fs.mkdirSync(USERS_DIR);
   instance.defaults.headers.common.cookie = await loadCookies(); // 加载帐号
   const courseListData = await getCourseListData(); // 获取课程列表
   for (const { courseName, courseLink } of courseListData) {
-    // 使用异步队列 并发默认3
-    queue.add(async function task() {
-      const workParams = await getWorkParams(courseLink); // 获取页面参数
-      const workList = await getWorkList(workParams); // 获取作业列表
-      for (const work of workList) {
-        stream.write([courseName, work.workName, work.status, work.time]); // 列表输出流
-      }
-    });
+    const workParams = await getWorkParams(courseLink); // 获取页面参数
+    const workList = await getWorkList(workParams); // 获取作业列表
+    for (const work of workList) {
+      stream.write([courseName, work.workName, work.status, work.time]); // 列表输出流
+    }
   }
-
-  await queue.onIdle();
+  console.log(colors.green('\n' + LOG_PREFIX + '任务结束' + LOG_PREFIX));
 })();
 
 /**
@@ -70,6 +70,7 @@ async function getCourseListData() {
       courseFolderSize: 0,
     }),
   });
+
   const $ = cheerio.load(resp.data);
 
   const course = $('li.course').not(
@@ -121,6 +122,7 @@ async function getWorkList(workParams) {
   const resp = await instance.get('https://mooc1.chaoxing.com/mooc2/work/list', {
     params: { ...workParams, ut: 's' },
   });
+
   const $ = cheerio.load(resp.data);
 
   return $('.bottomList li')
@@ -164,8 +166,9 @@ async function getCookies(username, password) {
     console.log(colors.red(resp.data.mes));
     process.exit();
   }
+
   if (!resp.headers['set-cookie']) {
-    console.log(colors.red('登录失败'));
+    console.log(colors.red(LOG_PREFIX + '登录失败' + LOG_PREFIX));
     process.exit();
   }
 
@@ -175,7 +178,7 @@ async function getCookies(username, password) {
     .join(';');
 
   await fs.promises.writeFile(path.join(USERS_DIR, username), JSON.stringify({ cookie, username, password }));
-  console.log(colors.green('登录成功'));
+  console.log(colors.green(LOG_PREFIX + '登录成功' + LOG_PREFIX));
   return cookie;
 }
 /**
