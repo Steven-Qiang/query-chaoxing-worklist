@@ -1,17 +1,19 @@
 {
   "name": "query-chaoxing-worklist",
   "private": true,
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "build": "ncc build index.js -m",
+    "build": "ncc build app.js -m",
     "start": "node single",
-    "start:src": "node ."
+    "start:src": "node app"
   },
   "dependencies": {
     "axios": "^0.26.1",
     "cheerio": "^1.0.0-rc.10",
     "colors": "^1.4.0",
+    "delay": "^5.0.0",
     "inquirer": "^8.2.1",
+    "p-queue": "6.6.2",
     "table": "^6.8.0",
     "tough-cookie": "^4.0.0"
   }

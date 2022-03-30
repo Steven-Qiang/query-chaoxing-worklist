@@ -1,57 +1,25 @@
 /**
- * @description: 快速查询学习通作业列表 支持多账户
- * @create: 2022-03-20 12:24:30
+ * @file: utils.js
+ * @description: utils.js
+ * @package: query-chaoxing-worklist
+ * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-25 07:58:41
+ * @last-modified: 2022-03-30 06:05:03
  * -----
  */
 
 const fs = require('fs');
 const path = require('path');
+
 const qs = require('querystring');
-const axios = require('axios').default;
-const cheerio = require('cheerio');
-const table = require('table');
 const colors = require('colors');
+const cheerio = require('cheerio');
 const inquirer = require('inquirer');
-const tough = require('tough-cookie');
-const Cookie = tough.Cookie;
-const stream = table.createStream({
-  columns: [{}, {}, { width: 10, alignment: 'center' }, { width: 30 }],
-  columnCount: 4,
-  columnDefault: { width: 50 },
-});
 
-const instance = axios.create({
-  headers: {
-    // cspell-checker:disable
-    'User-Agent':
-      'Mozilla/5.0 (iPhone; CPU iPhone OS 13_4_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 ChaoXingStudy/ChaoXingStudy_3_4.4.1_ios_phone_202004111750_39 (@Kalimdor)_4375872153618237766',
-    // cspell-checker:enable
-  },
-  validateStatus() {
-    return true;
-  },
-});
-
-const LOG_PREFIX = '='.repeat(20);
-// 用户信息存储文件夹
-const USERS_DIR = path.resolve('./user');
-fs.existsSync(USERS_DIR) || fs.mkdirSync(USERS_DIR);
-
-(async () => {
-  instance.defaults.headers.common.cookie = await loadCookies(); // 加载帐号
-  const courseListData = await getCourseListData(); // 获取课程列表
-  for (const { courseName, courseLink } of courseListData) {
-    const workParams = await getWorkParams(courseLink); // 获取页面参数
-    const workList = await getWorkList(workParams); // 获取作业列表
-    for (const work of workList) {
-      stream.write([courseName, work.workName, work.status, work.time]); // 列表输出流
-    }
-  }
-  console.log(colors.green('\n' + LOG_PREFIX + '任务结束' + LOG_PREFIX));
-})();
+const { instance } = require('./request');
+const { Cookie } = require('tough-cookie');
+const { LOG_PREFIX, USERS_DIR } = require('./config');
 
 /**
  * @description 获取课程列表
@@ -74,7 +42,7 @@ async function getCourseListData() {
   const $ = cheerio.load(resp.data);
 
   const course = $('li.course').not(
-    (i, el) => $(el).has('a.not-open-tip').length // 过滤已结束课程
+    (_i, el) => $(el).has('a.not-open-tip').length // 过滤已结束课程
   );
   return course
     .toArray()
@@ -86,15 +54,15 @@ async function getCourseListData() {
 }
 
 /**
- * @description 获取页面参数
- * @param {string} courseLink 课程页面链接
- * @return {Promise<{
-      cpi:string,
-      enc:string,
-      courseId:string,
-      classId:string
+* @description 获取页面参数
+* @param {string} courseLink 课程页面链接
+* @return {Promise<{
+    cpi:string,
+    enc:string,
+    courseId:string,
+    classId:string
     }>} 
- */
+*/
 async function getWorkParams(courseLink) {
   const stu = await instance.get(courseLink, { maxRedirects: 0 }).then(({ headers }) => instance.get(headers.location));
   const $ = cheerio.load(stu.data);
@@ -110,14 +78,14 @@ async function getWorkParams(courseLink) {
   };
 }
 /**
- * @description 获取作业列表
- * @param {Awaited<ReturnType<getWorkParams>>} workParams
- * @returns {Promise<{
+* @description 获取作业列表
+* @param {Awaited<ReturnType<getWorkParams>>} workParams
+* @returns {Promise<{
         workName: string; // 作业名称
         status: string; // 作业状态
         time: string; // 截止时间
     }[]>}
- */
+*/
 async function getWorkList(workParams) {
   const resp = await instance.get('https://mooc1.chaoxing.com/mooc2/work/list', {
     params: { ...workParams, ut: 's' },
@@ -218,3 +186,11 @@ async function loadCookies() {
   }
   return cookie;
 }
+
+module.exports = {
+  loadCookies,
+  getCookies,
+  getCourseListData,
+  getWorkList,
+  getWorkParams,
+};
