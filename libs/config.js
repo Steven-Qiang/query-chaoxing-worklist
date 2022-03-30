@@ -5,12 +5,12 @@
  * @create: 2022-03-30 05:59:38
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-30 06:06:56
+ * @last-modified: 2022-03-30 06:16:08
  * -----
  */
 const path = require('path');
 
 const LOG_PREFIX = '='.repeat(73);
-const USERS_DIR = path.resolve('./user');
+const USERS_DIR = './user';
 
 module.exports = { LOG_PREFIX, USERS_DIR };
