@@ -20,9 +20,9 @@
 
 ### 运行截图
 
-![](https://gee.li/temp/2203/1f86da472f7a561f.png)
+[![https://gee.li/temp/2203/1f86da472f7a561f.png](https://gee.li/temp/2203/1f86da472f7a561f.png)](https://gee.li/temp/2203/1f86da472f7a561f.png)
 
-![](https://gee.li/temp/2203/eb4baf1c8f06e811.png)
+[![https://gee.li/temp/2203/1f86da472f7a561f.png](https://gee.li/temp/2203/eb4baf1c8f06e811.png)](https://gee.li/temp/2203/eb4baf1c8f06e811.png)
 
 ### 程序出现了问题
 
