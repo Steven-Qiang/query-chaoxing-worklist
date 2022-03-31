@@ -20,9 +20,10 @@
 
 ### 运行截图
 
-[![https://gee.li/temp/2203/1f86da472f7a561f.png](https://gee.li/temp/2203/1f86da472f7a561f.png)](https://gee.li/temp/2203/1f86da472f7a561f.png)
+![](https://cdn.jsdelivr.net/gh/hututu-tech/IMG-gongfeng@main/2022/03/31/6245455781e92.png)
+![](https://cdn.jsdelivr.net/gh/hututu-tech/IMG-gongfeng@main/2022/03/31/62454555e10b6.png)
 
-[![https://gee.li/temp/2203/1f86da472f7a561f.png](https://gee.li/temp/2203/eb4baf1c8f06e811.png)](https://gee.li/temp/2203/eb4baf1c8f06e811.png)
+
 
 ### 程序出现了问题
 
