@@ -5,7 +5,7 @@
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-30 06:05:03
+ * @last-modified: 2022-03-31 01:21:12
  * -----
  */
 
@@ -18,7 +18,6 @@ const cheerio = require('cheerio');
 const inquirer = require('inquirer');
 
 const { instance } = require('./request');
-const { Cookie } = require('tough-cookie');
 const { LOG_PREFIX, USERS_DIR } = require('./config');
 
 /**
@@ -140,10 +139,7 @@ async function getCookies(username, password) {
     process.exit();
   }
 
-  const cookie = resp.headers['set-cookie']
-    .map(Cookie.parse)
-    .map(({ key, value }) => `${key}=${value}`)
-    .join(';');
+  const cookie = resp.headers['set-cookie'].map((x) => x.split('; ')[0]).join(';');
 
   await fs.promises.writeFile(path.join(USERS_DIR, username), JSON.stringify({ cookie, username, password }));
   console.log(colors.green(LOG_PREFIX + '登录成功' + LOG_PREFIX));

@@ -1,20 +1,29 @@
 {
   "name": "query-chaoxing-worklist",
-  "private": true,
-  "main": "app.js",
+  "description": "快速查询学习通作业列表 (支持多账户), 解决学习通无法快速查看作业列表的问题",
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/qiangmouren/query-chaoxing-worklist"
+  },
+  "author": {
+    "name": "qiangmouren",
+    "email": "2962051004@qq.com",
+    "url": "https://qiangmou.ren"
+  },
+  "main": "index.js",
   "scripts": {
-    "build": "ncc build app.js -m",
-    "start": "node single",
-    "start:src": "node app"
+    "build": "ncc build src/main.js -m",
+    "start": "node .",
+    "start:src": "node src/main.js",
+    "postbuild": "node postbuild.js"
   },
   "dependencies": {
     "axios": "^0.26.1",
-    "cheerio": "^1.0.0-rc.10",
     "colors": "^1.4.0",
     "delay": "^5.0.0",
+    "cheerio": "^1.0.0-rc.10",
     "inquirer": "^8.2.1",
     "p-queue": "6.6.2",
-    "table": "^6.8.0",
-    "tough-cookie": "^4.0.0"
+    "table": "^6.8.0"
   }
 }

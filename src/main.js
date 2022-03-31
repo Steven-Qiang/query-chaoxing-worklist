@@ -1,9 +1,11 @@
 /**
- * @description: 快速查询学习通作业列表 支持多账户
- * @create: 2022-03-20 12:24:30
+ * @file: main.js
+ * @description: main.js
+ * @package: query-chaoxing-worklist
+ * @create: 2022-03-31 01:42:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-31 01:02:00
+ * @last-modified: 2022-03-31 01:42:40
  * -----
  */
 
@@ -11,11 +13,11 @@ const fs = require('fs');
 const table = require('table');
 const colors = require('colors');
 const delay = require('delay');
-const queue = require('./libs/queue');
+const queue = require('./queue');
 
-const { setCookies } = require('./libs/request');
-const { loadCookies, getCourseListData, getWorkList, getWorkParams } = require('./libs/utils');
-const { LOG_PREFIX, USERS_DIR } = require('./libs/config');
+const { setCookies } = require('./request');
+const { loadCookies, getCourseListData, getWorkList, getWorkParams } = require('./utils');
+const { LOG_PREFIX, USERS_DIR } = require('./config');
 
 const stream = table.createStream({
   columns: [{}, {}, { width: 10, alignment: 'center' }, { width: 30 }],

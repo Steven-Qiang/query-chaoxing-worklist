@@ -5,7 +5,7 @@
  * @create: 2022-03-30 05:55:32
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-30 06:03:41
+ * @last-modified: 2022-03-31 01:52:39
  * -----
  */
 const axios = require('axios').default;
@@ -21,6 +21,10 @@ const instance = axios.create({
     return true;
   },
 });
+/**
+ * @description 设置cookies
+ * @param {string} cookies
+ */
 function setCookies(cookies) {
   instance.defaults.headers.common.cookie = cookies;
 }
