@@ -5,19 +5,22 @@
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-03-31 01:21:12
+ * @last-modified: 2022-04-01 08:33:03
  * -----
  */
 
 const fs = require('fs');
 const path = require('path');
 
+const { URL } = require('url');
+
 const qs = require('querystring');
+const dayjs = require('dayjs');
 const colors = require('colors');
 const cheerio = require('cheerio');
 const inquirer = require('inquirer');
 
-const { instance } = require('./request');
+const { instance, setCookie, getCookie } = require('./request');
 const { LOG_PREFIX, USERS_DIR } = require('./config');
 
 /**
@@ -29,13 +32,16 @@ const { LOG_PREFIX, USERS_DIR } = require('./config');
  */
 async function getCourseListData() {
   const resp = await instance.request({
-    method: 'POST',
-    url: 'https://mooc1-1.chaoxing.com/visit/courselistdata',
-    data: qs.stringify({
-      courseType: 1,
-      courseFolderId: 0,
-      courseFolderSize: 0,
-    }),
+    method: 'GET',
+    url: 'http://mooc2-ans.chaoxing.com/visit/courses/list',
+    params: {
+      v: Date.now(),
+      rss: 1,
+      start: 0,
+      size: 500,
+      catalogId: 0, // cspell-checker:disable-next-line
+      searchname: '',
+    },
   });
 
   const $ = cheerio.load(resp.data);
@@ -56,62 +62,100 @@ async function getCourseListData() {
 * @description 获取页面参数
 * @param {string} courseLink 课程页面链接
 * @return {Promise<{
-    cpi:string,
-    enc:string,
-    courseId:string,
-    classId:string
+        courseId: string;
+        clazzid: string;
+        cpi: string;
+        openc: string;
+        enc: string;
     }>} 
 */
 async function getWorkParams(courseLink) {
   const stu = await instance.get(courseLink, { maxRedirects: 0 }).then(({ headers }) => instance.get(headers.location));
   const $ = cheerio.load(stu.data);
-  const cpi = $('#cpi').val(); // cspell-checker:disable-next-line
-  const courseId = $('#courseid').val();
-  const enc = $('#workEnc').val(); // cspell-checker:disable-next-line
-  const classId = $('#clazzid').val();
-  return {
-    cpi,
-    enc,
-    courseId,
-    classId,
-  };
+  const courseid = $('#courseid').val();
+  const clazzid = $('#clazzid').val();
+  const cpi = $('#cpi').val();
+  const enc = $('#oldenc').val();
+  const openc = $('#openc').val();
+  
+  const homepage = `https://mooc1.chaoxing.com/mycourse/studentcourse?courseId=${courseid}&clazzid=${clazzid}&cpi=${cpi}&openc=${openc}&enc=${enc}`;
+  const old = `https://mooc1.chaoxing.com/mycourse/transfer?moocId=${courseid}&ut=s&clazzid=${clazzid}&refer=${encodeURIComponent(homepage)}`;
+  const resp = await instance.get(old, { maxRedirects: 0 });
+  
+  setCookie(getCookie() + ';' + parseCookies(resp.headers));
+
+  const searchParams = new URL(resp.headers.location).searchParams;
+  const entries = searchParams.entries();
+
+  return Object.fromEntries(entries);
 }
+
 /**
 * @description 获取作业列表
 * @param {Awaited<ReturnType<getWorkParams>>} workParams
 * @returns {Promise<{
+        workURL: string; // 作业地址
         workName: string; // 作业名称
         status: string; // 作业状态
-        time: string; // 截止时间
+        endTime: string; // 截止时间
+        resultNum: string // 成绩
     }[]>}
 */
 async function getWorkList(workParams) {
-  const resp = await instance.get('https://mooc1.chaoxing.com/mooc2/work/list', {
-    params: { ...workParams, ut: 's' },
+  const resp = await instance.get('https://mooc1.chaoxing.com/work/getAllWork', {
+    params: {
+      classId: workParams.clazzid,
+      courseId: workParams.courseId,
+      isdisplaytable: 2,
+      mooc: 1,
+      ut: 's',
+      enc: workParams.enc,
+      cpi: workParams.cpi,
+      openc: workParams.openc,
+    },
   });
 
   const $ = cheerio.load(resp.data);
 
-  return $('.bottomList li')
+  return $('.ulDiv li.lookLi')
     .toArray()
     .map((x) => $(x))
     .map((x) => {
-      const workName = x.find('p.overHidden2').text().trim();
-      const _ = x.find('p.status').text().trim();
+      const a = x.find('.titTxt a');
+      const workURL = a.attr('href');
+      const workName = a.attr('title').trim();
 
-      const status = ((_) => {
-        switch (_) {
-          case '未交':
-            return colors.red(_);
-          case '已完成':
-            return colors.green(_);
-          default:
-            return colors.yellow(_);
+      // 作业状态处理
+      const _ = x.find('span.pt5:last strong').clone().children().remove().end().text().trim();
+      const status = colors[_ == '未交' ? 'red' : _ == '已完成' ? 'green' : 'yellow'](_);
+
+      // 结束时间处理
+      let endTime = colors.green('无限制');
+      let end_time = x.find('span.pt5:eq(1)').clone().children().remove().end().text().trim();
+      if (end_time) {
+        let dayjs_end_time = dayjs(end_time);
+        if (dayjs_end_time.isBefore(dayjs())) {
+          let diff_hours = Math.abs(dayjs_end_time.diff(dayjs(), 'hours', true)).toFixed(2);
+          endTime = colors[diff_hours > 24 ? 'yellow' : 'red'](diff_hours + '小时');
+        } else {
+          endTime = colors.gray('已结束');
         }
-      })(_);
+      }
 
-      const time = x.find('.time.notOver').text().trim() || colors.gray('已结束');
-      return { workName, status, time };
+      // 成绩处理
+      let resultNum = colors.gray('  暂无成绩');
+      // cspell-checker:disable-next-line
+      let _resultNum = x.find('.titOper span.fl').text().trim();
+      if (_resultNum) {
+        let num = Number(_resultNum.replace('分', ''));
+        _resultNum = num.toFixed(2);
+        if (_resultNum.length < 8) _resultNum = ' '.repeat(7 - _resultNum.length) + _resultNum;
+        _resultNum = `${_resultNum} 分`;
+        // 及格提示
+        resultNum = num > 60 ? colors.green(_resultNum) : colors.red(_resultNum);
+      }
+
+      return { workURL, workName, status, endTime, resultNum };
     });
 }
 
@@ -121,7 +165,7 @@ async function getWorkList(workParams) {
  * @param {string} password
  * @return {Promise<string>} cookies
  */
-async function getCookies(username, password) {
+async function login(username, password) {
   const resp = await instance.post(
     'https://passport2-api.chaoxing.com/v11/loginregister',
     qs.stringify({
@@ -135,16 +179,17 @@ async function getCookies(username, password) {
   }
 
   if (!resp.headers['set-cookie']) {
-    console.log(colors.red(LOG_PREFIX + '登录失败' + LOG_PREFIX));
+    console.log(colors.red(`${LOG_PREFIX}登录失败${LOG_PREFIX}`));
     process.exit();
   }
 
-  const cookie = resp.headers['set-cookie'].map((x) => x.split('; ')[0]).join(';');
+  const cookie = parseCookies(resp.headers);
 
   await fs.promises.writeFile(path.join(USERS_DIR, username), JSON.stringify({ cookie, username, password }));
-  console.log(colors.green(LOG_PREFIX + '登录成功' + LOG_PREFIX));
+  console.log(colors.green(`${LOG_PREFIX}登录成功${LOG_PREFIX}`));
   return cookie;
 }
+
 /**
  * @description 检测cookie是否有效
  * @param {string} cookie
@@ -156,6 +201,7 @@ async function checkCookies(cookie) {
   });
   return resp.data.result === 1;
 }
+
 /**
  * @description 加载cookies
  */
@@ -175,17 +221,26 @@ async function loadCookies() {
       { type: 'input', message: '请输入用户名:', name: 'username' },
       { type: 'password', message: '请输入密码:', name: 'password' },
     ]);
-    cookie = await getCookies(resp.username, resp.password);
+    cookie = await login(resp.username, resp.password);
   } else {
     const user = await fs.promises.readFile(path.join(USERS_DIR, resp.username), 'utf8').then(JSON.parse);
-    cookie = (await checkCookies(user.cookie)) ? user.cookie : await getCookies(user.username, user.password);
+    cookie = (await checkCookies(user.cookie)) ? user.cookie : await login(user.username, user.password);
   }
   return cookie;
 }
 
+/**
+ * @description 处理set-cookie返回的cookies
+ * @param {string} headers
+ * @returns
+ */
+function parseCookies(headers) {
+  return headers['set-cookie'].map((x) => x.split(';')[0]).join(';');
+}
+
 module.exports = {
   loadCookies,
-  getCookies,
+  login,
   getCourseListData,
   getWorkList,
   getWorkParams,

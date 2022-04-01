@@ -10,18 +10,18 @@
     "email": "2962051004@qq.com",
     "url": "https://qiangmou.ren"
   },
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "ncc build src/main.js -m",
     "start": "node .",
-    "start:src": "node src/main.js",
-    "postbuild": "node postbuild.js"
+    "start:src": "node src/main.js"
   },
   "dependencies": {
     "axios": "^0.26.1",
-    "colors": "^1.4.0",
-    "delay": "^5.0.0",
     "cheerio": "^1.0.0-rc.10",
+    "colors": "^1.4.0",
+    "dayjs": "^1.11.0",
+    "delay": "^5.0.0",
     "inquirer": "^8.2.1",
     "p-queue": "6.6.2",
     "table": "^6.8.0"

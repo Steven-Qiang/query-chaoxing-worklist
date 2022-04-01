@@ -21,9 +21,7 @@
 ### 运行截图
 
 ![](https://cdn.jsdelivr.net/gh/hututu-tech/IMG-gongfeng@main/2022/03/31/6245455781e92.png)
-![](https://cdn.jsdelivr.net/gh/hututu-tech/IMG-gongfeng@main/2022/03/31/62454555e10b6.png)
-
-
+![](https://static.aichat.net/chat/202204/5786555c-0e11-4ffc-9240-756139cf082c.png)
 
 ### 程序出现了问题
 
