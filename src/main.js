@@ -5,7 +5,7 @@
  * @create: 2022-03-31 01:42:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-01 08:51:13
+ * @last-modified: 2022-04-01 08:57:54
  * -----
  */
 
@@ -38,5 +38,6 @@ const stream = table.createStream({
     });
   }
   await queue.onIdle();
+  fs.promises.writeFile('a.json', JSON.stringify(c, null, 4));
   console.log(colors.green('\n' + LOG_PREFIX + '任务结束' + LOG_PREFIX));
 })();
