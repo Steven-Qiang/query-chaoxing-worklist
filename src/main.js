@@ -38,6 +38,5 @@ const stream = table.createStream({
     });
   }
   await queue.onIdle();
-  fs.promises.writeFile('a.json', JSON.stringify(c, null, 4));
   console.log(colors.green('\n' + LOG_PREFIX + '任务结束' + LOG_PREFIX));
 })();
