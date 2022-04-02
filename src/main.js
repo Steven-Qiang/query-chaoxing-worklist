@@ -5,18 +5,17 @@
  * @create: 2022-03-31 01:42:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-01 08:57:54
+ * @last-modified: 2022-04-02 10:36:07
  * -----
  */
 
 const fs = require('fs');
 const table = require('table');
-const colors = require('colors');
 const queue = require('./queue');
 
 const { setCookie } = require('./request');
-const { loadCookies, getCourseListData, getWorkList, getWorkParams } = require('./utils');
-const { LOG_PREFIX, USERS_DIR } = require('./config');
+const { loadCookies, getCourseListData, getWorkList, getWorkParams, logPaddingPrefix } = require('./utils');
+const { USERS_DIR } = require('./config');
 
 const stream = table.createStream({
   columns: [{}, { width: 80 }, { width: 10, alignment: 'center' }, { width: 10 }],
@@ -38,5 +37,5 @@ const stream = table.createStream({
     });
   }
   await queue.onIdle();
-  console.log(colors.green('\n' + LOG_PREFIX + '任务结束' + LOG_PREFIX));
+  logPaddingPrefix('任务结束', 'green');
 })();
