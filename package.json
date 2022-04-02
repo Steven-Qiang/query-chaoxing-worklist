@@ -10,9 +10,9 @@
     "email": "2962051004@qq.com",
     "url": "https://qiangmou.ren"
   },
-  "main": "dist/index.js",
+  "main": "dist",
   "scripts": {
-    "build": "ncc build src/main.js -m",
+    "build": "ncc build src/main.js --target es2022",
     "start": "node .",
     "start:src": "node src/main.js"
   },
