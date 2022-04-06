@@ -5,7 +5,7 @@
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-02 10:37:22
+ * @last-modified: 2022-04-04 01:05:36
  * -----
  */
 
@@ -26,9 +26,9 @@ const { LOG_PREFIX, USERS_DIR } = require('./config');
 /**
  * @description 获取课程列表
  * @return {Promise<{
-      courseName:string, // 课程名
-      courseLink:string // 课程链接
-    }[]>}
+  *     courseName:string; // 课程名
+  *     courseLink:string; // 课程链接
+  * }[]>}
  */
 async function getCourseListData() {
   const resp = await instance.request({
@@ -94,12 +94,12 @@ async function getWorkParams(courseLink) {
 * @description 获取作业列表
 * @param {Awaited<ReturnType<getWorkParams>>} workParams
 * @returns {Promise<{
-        workURL: string; // 作业地址
-        workName: string; // 作业名称
-        status: string; // 作业状态
-        endTime: string; // 截止时间
-        resultNum: string // 成绩
-    }[]>}
+  *         workURL: string; // 作业地址
+  *         workName: string; // 作业名称
+  *         status: string; // 作业状态
+  *         endTime: string; // 截止时间
+  *         resultNum: string // 成绩
+  *  }[]>}
 */
 async function getWorkList(workParams) {
   const resp = await instance.get('https://mooc1.chaoxing.com/work/getAllWork', {
@@ -204,7 +204,7 @@ async function checkCookies(cookie) {
 
 /**
  * @description 加载cookies
- * @returns {string}
+ * @returns {Promise<string>}
  */
 async function loadCookies() {
   const users = await fs.promises.readdir(USERS_DIR);
