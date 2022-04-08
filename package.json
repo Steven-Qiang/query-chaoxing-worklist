@@ -11,6 +11,7 @@
     "url": "https://qiangmou.ren"
   },
   "main": "dist",
+  "version": "3.0.0",
   "scripts": {
     "build": "ncc build src/main.js --target es2022",
     "start": "node .",
