@@ -60709,6 +60709,100 @@ module.exports.USERS_DIR = USERS_DIR;
 
 /***/ }),
 
+/***/ 6145:
+/***/ ((module) => {
+
+/**
+ * @file: Enum.js
+ * @description: Enum.js
+ * @package: query-chaoxing-worklist
+ * @create: 2022-04-08 09:08:27
+ * @author: qiangmouren (2962051004@qq.com)
+ * -----
+ * @last-modified: 2022-04-08 09:47:34
+ * -----
+ */
+
+const _flag = Symbol('flag');
+const firstUpperCase = ([first, ...rest]) => first.toUpperCase() + rest.join('');
+/**
+ * @description 枚举类
+ */
+class Enum {
+  constructor(flag) {
+    if (flag != undefined && flag == _flag) {
+      return;
+    }
+    let objList = this.__proto__.constructor;
+    let enumList = [];
+    let infoList = [];
+    for (let obj in objList) {
+      if (Array.isArray(objList[obj])) {
+        enumList.push(obj);
+      } else {
+        infoList.push(obj);
+      }
+    }
+    for (let i = 0; i < enumList.length; i++) {
+      let enumObj = objList[enumList[i]];
+      if (enumObj.length != infoList.length) {
+        throw new Error(`${enumList[i]} 对象实例化失败:枚举参数不匹配`);
+      }
+      let obj = new Enum(_flag);
+      for (let x = 0; x < infoList.length; x++) {
+        obj[infoList[x]] = enumObj[x];
+        obj[`get${firstUpperCase(infoList[x])}`] = () => enumObj[x];
+      }
+      for (const method of Reflect.ownKeys(objList.prototype).filter((x) => x != 'constructor')) {
+        obj[method] = objList.prototype[method].bind(obj);
+      }
+      this[enumList[i]] = obj;
+    }
+
+    Object.freeze(this);
+  }
+}
+
+module.exports = Enum;
+
+
+/***/ }),
+
+/***/ 20108:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+/**
+ * @file: StatusCode.js
+ * @description: StatusCode.js
+ * @package: query-chaoxing-worklist
+ * @create: 2022-04-08 09:08:43
+ * @author: qiangmouren (2962051004@qq.com)
+ * -----
+ * @last-modified: 2022-04-08 09:47:16
+ * -----
+ */
+
+const Enum = __nccwpck_require__(6145);
+/**
+ * @description 作业状态枚举
+ */
+class StatusCode extends Enum {
+  static UNDONE = ['待做', 'red'];
+  static EXPIRED = ['已过期', 'red'];
+  static DONE = ['已完成', 'green'];
+  static UNDONE_READ = ['待批阅', 'gray'];
+  static OTHER = ['其他', 'yellow'];
+
+  static label;
+  static color;
+}
+
+const _StatusCode = new StatusCode();
+module.exports = Object.freeze(_StatusCode);
+
+
+/***/ }),
+
 /***/ 48541:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -60807,7 +60901,7 @@ module.exports = { setCookie, getCookie, instance, axios };
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-02 10:37:22
+ * @last-modified: 2022-04-08 09:48:52
  * -----
  */
 
@@ -60824,13 +60918,14 @@ const inquirer = __nccwpck_require__(96533);
 
 const { instance, setCookie, getCookie } = __nccwpck_require__(66286);
 const { LOG_PREFIX, USERS_DIR } = __nccwpck_require__(87683);
+const StatusCode = __nccwpck_require__(20108);
 
 /**
  * @description 获取课程列表
  * @return {Promise<{
-      courseName:string, // 课程名
-      courseLink:string // 课程链接
-    }[]>}
+ *     courseName:string; // 课程名
+ *     courseLink:string; // 课程链接
+ * }[]>}
  */
 async function getCourseListData() {
   const resp = await instance.request({
@@ -60881,7 +60976,9 @@ async function getWorkParams(courseLink) {
   const openc = $('#openc').val();
 
   const homepage = `https://mooc1.chaoxing.com/mycourse/studentcourse?courseId=${courseid}&clazzid=${clazzid}&cpi=${cpi}&openc=${openc}&enc=${enc}`;
-  const old = `https://mooc1.chaoxing.com/mycourse/transfer?moocId=${courseid}&ut=s&clazzid=${clazzid}&refer=${encodeURIComponent(homepage)}`;
+  const old = `https://mooc1.chaoxing.com/mycourse/transfer?moocId=${courseid}&ut=s&clazzid=${clazzid}&refer=${encodeURIComponent(
+    homepage
+  )}`;
   const resp = await instance.get(old, { maxRedirects: 0 });
 
   setCookie(getCookie() + ';' + parseCookies(resp.headers));
@@ -60893,16 +60990,17 @@ async function getWorkParams(courseLink) {
 }
 
 /**
-* @description 获取作业列表
-* @param {Awaited<ReturnType<getWorkParams>>} workParams
-* @returns {Promise<{
-        workURL: string; // 作业地址
-        workName: string; // 作业名称
-        status: string; // 作业状态
-        endTime: string; // 截止时间
-        resultNum: string // 成绩
-    }[]>}
-*/
+ * @description 获取作业列表
+ * @param {Awaited<ReturnType<getWorkParams>>} workParams
+ * @returns {Promise<{
+ *         workURL: string; // 作业地址
+ *         workName: string; // 作业名称
+ *         status: string; // 作业状态
+ *         endTime: string; // 截止时间
+ *         resultNum: string; // 成绩
+ *         statusCode: 'UNDONE'|'EXPIRED'|'DONE'|'UNDONE_READ'|'OTHER'; // 作业状态
+ *  }[]>}
+ */
 async function getWorkList(workParams) {
   const resp = await instance.get('https://mooc1.chaoxing.com/work/getAllWork', {
     params: {
@@ -60929,7 +61027,23 @@ async function getWorkList(workParams) {
 
       // 作业状态处理
       const _ = getImmediateText(x.find('span.pt5:last strong'));
-      const status = colors[_ == '待做' ? 'red' : _ == '已完成' ? 'green' : 'yellow'](_);
+      let instance;
+      let statusCode;
+      for (const key in StatusCode) {
+        if (StatusCode[key].getLabel() == _) {
+          instance = StatusCode[key];
+          statusCode = key;
+          break;
+        }
+      }
+
+      // 未知状态码
+      if (!instance) {
+        statusCode = 'OTHER';
+        instance = Object.assign({}, StatusCode.OTHER);
+        instance.label = `[${_}]`;
+      }
+      const status = colors[instance.color](instance.label);
 
       // 结束时间处理
       let endTime = colors.green('无限制');
@@ -60958,7 +61072,7 @@ async function getWorkList(workParams) {
         resultNum = num > 60 ? colors.green(_resultNum) : colors.red(_resultNum);
       }
 
-      return { workURL, workName, status, endTime, resultNum };
+      return { workURL, workName, status, statusCode, endTime, resultNum };
     });
 }
 
@@ -61006,7 +61120,7 @@ async function checkCookies(cookie) {
 
 /**
  * @description 加载cookies
- * @returns {string}
+ * @returns {Promise<string>}
  */
 async function loadCookies() {
   const users = await fs.promises.readdir(USERS_DIR);
@@ -61403,7 +61517,7 @@ var __webpack_exports__ = {};
  * @create: 2022-03-31 01:42:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-02 10:36:07
+ * @last-modified: 2022-04-08 09:46:56
  * -----
  */
 
@@ -61412,8 +61526,17 @@ const table = __nccwpck_require__(93574);
 const queue = __nccwpck_require__(48541);
 
 const { setCookie } = __nccwpck_require__(66286);
-const { loadCookies, getCourseListData, getWorkList, getWorkParams, logPaddingPrefix } = __nccwpck_require__(83770);
+const {
+  loadCookies,
+  getCourseListData,
+  getWorkList,
+  getWorkParams,
+  logPaddingPrefix,
+  logWithColors,
+} = __nccwpck_require__(83770);
+
 const { USERS_DIR } = __nccwpck_require__(87683);
+const StatusCode = __nccwpck_require__(20108);
 
 const stream = table.createStream({
   columns: [{}, { width: 80 }, { width: 10, alignment: 'center' }, { width: 10 }],
@@ -61425,17 +61548,26 @@ const stream = table.createStream({
   fs.existsSync(USERS_DIR) || fs.mkdirSync(USERS_DIR);
   setCookie(await loadCookies()); // 加载帐号
   const courseListData = await getCourseListData(); // 获取课程列表
+  let statistics = {}; // 统计信息
   for (const { courseName, courseLink } of courseListData) {
     queue.add(async () => {
       const workParams = await getWorkParams(courseLink); // 获取课程页面参数
       const workList = await getWorkList(workParams); // 获取作业列表
       for (const work of workList) {
+        statistics[work.statusCode] = (statistics[work.statusCode] || 0) + 1;
         stream.write([courseName, work.workName, work.status, work.resultNum, work.endTime]); // 列表输出流
       }
     });
   }
   await queue.onIdle();
   logPaddingPrefix('任务结束', 'green');
+
+  // 结果统计
+  console.log('\n\n结果统计:');
+  for (const statusCode in statistics) {
+    logWithColors(StatusCode[statusCode].getLabel() + ': ' + statistics[statusCode], StatusCode[statusCode].getColor());
+  }
+  console.log('\n\n');
 })();
 
 })();

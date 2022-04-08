@@ -5,7 +5,7 @@
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-04 01:05:36
+ * @last-modified: 2022-04-08 09:48:52
  * -----
  */
 
@@ -22,13 +22,14 @@ const inquirer = require('inquirer');
 
 const { instance, setCookie, getCookie } = require('./request');
 const { LOG_PREFIX, USERS_DIR } = require('./config');
+const StatusCode = require('./enum/StatusCode');
 
 /**
  * @description 获取课程列表
  * @return {Promise<{
-  *     courseName:string; // 课程名
-  *     courseLink:string; // 课程链接
-  * }[]>}
+ *     courseName:string; // 课程名
+ *     courseLink:string; // 课程链接
+ * }[]>}
  */
 async function getCourseListData() {
   const resp = await instance.request({
@@ -79,7 +80,9 @@ async function getWorkParams(courseLink) {
   const openc = $('#openc').val();
 
   const homepage = `https://mooc1.chaoxing.com/mycourse/studentcourse?courseId=${courseid}&clazzid=${clazzid}&cpi=${cpi}&openc=${openc}&enc=${enc}`;
-  const old = `https://mooc1.chaoxing.com/mycourse/transfer?moocId=${courseid}&ut=s&clazzid=${clazzid}&refer=${encodeURIComponent(homepage)}`;
+  const old = `https://mooc1.chaoxing.com/mycourse/transfer?moocId=${courseid}&ut=s&clazzid=${clazzid}&refer=${encodeURIComponent(
+    homepage
+  )}`;
   const resp = await instance.get(old, { maxRedirects: 0 });
 
   setCookie(getCookie() + ';' + parseCookies(resp.headers));
@@ -91,16 +94,17 @@ async function getWorkParams(courseLink) {
 }
 
 /**
-* @description 获取作业列表
-* @param {Awaited<ReturnType<getWorkParams>>} workParams
-* @returns {Promise<{
-  *         workURL: string; // 作业地址
-  *         workName: string; // 作业名称
-  *         status: string; // 作业状态
-  *         endTime: string; // 截止时间
-  *         resultNum: string // 成绩
-  *  }[]>}
-*/
+ * @description 获取作业列表
+ * @param {Awaited<ReturnType<getWorkParams>>} workParams
+ * @returns {Promise<{
+ *         workURL: string; // 作业地址
+ *         workName: string; // 作业名称
+ *         status: string; // 作业状态
+ *         endTime: string; // 截止时间
+ *         resultNum: string; // 成绩
+ *         statusCode: 'UNDONE'|'EXPIRED'|'DONE'|'UNDONE_READ'|'OTHER'; // 作业状态
+ *  }[]>}
+ */
 async function getWorkList(workParams) {
   const resp = await instance.get('https://mooc1.chaoxing.com/work/getAllWork', {
     params: {
@@ -127,7 +131,23 @@ async function getWorkList(workParams) {
 
       // 作业状态处理
       const _ = getImmediateText(x.find('span.pt5:last strong'));
-      const status = colors[_ == '待做' ? 'red' : _ == '已完成' ? 'green' : 'yellow'](_);
+      let instance;
+      let statusCode;
+      for (const key in StatusCode) {
+        if (StatusCode[key].getLabel() == _) {
+          instance = StatusCode[key];
+          statusCode = key;
+          break;
+        }
+      }
+
+      // 未知状态码
+      if (!instance) {
+        statusCode = 'OTHER';
+        instance = Object.assign({}, StatusCode.OTHER);
+        instance.label = `[${_}]`;
+      }
+      const status = colors[instance.color](instance.label);
 
       // 结束时间处理
       let endTime = colors.green('无限制');
@@ -156,7 +176,7 @@ async function getWorkList(workParams) {
         resultNum = num > 60 ? colors.green(_resultNum) : colors.red(_resultNum);
       }
 
-      return { workURL, workName, status, endTime, resultNum };
+      return { workURL, workName, status, statusCode, endTime, resultNum };
     });
 }
 
