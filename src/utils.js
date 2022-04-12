@@ -5,7 +5,7 @@
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-08 09:48:52
+ * @last-modified: 2022-04-12 07:07:21
  * -----
  */
 
@@ -157,9 +157,9 @@ async function getWorkList(workParams) {
         let dayjs_end_time = dayjs(end_time);
         if (dayjs_end_time.isAfter(dayjs())) {
           let diff_hours = Math.abs(dayjs_end_time.diff(dayjs(), 'hours', true)).toFixed(2);
-          endTime = colors[diff_hours > 24 ? 'yellow' : 'red'](diff_hours + '小时');
+          endTime = colors[diff_hours > 24 ? 'yellow' : 'red'](diff_hours + '小时') + ' [' + end_time + ']';
         } else {
-          endTime = colors.gray('已结束');
+          endTime = colors.gray('已结束') + ' [' + end_time + ']';
         }
       }
 
@@ -183,7 +183,7 @@ async function getWorkList(workParams) {
 /**
  * @description 登录获取cookies
  * @param {{username:string;password:string}} params
- * @return {Promise<string>} cookies
+ * @return {Promise<{cookie:string}>}
  */
 async function login({ username, password }) {
   const resp = await instance.post(
@@ -207,7 +207,8 @@ async function login({ username, password }) {
 
   await fs.promises.writeFile(path.join(USERS_DIR, username), JSON.stringify({ cookie, username, password }));
   logPaddingPrefix('登录成功');
-  return cookie;
+
+  return { cookie };
 }
 
 /**
@@ -223,11 +224,28 @@ async function checkCookies(cookie) {
 }
 
 /**
- * @description 加载cookies
- * @returns {Promise<string>}
+ * @description 从命令行参数获取用户名
+ * @param {string[]} users
+ * @return {Promise<string>}
  */
-async function loadCookies() {
-  const users = await fs.promises.readdir(USERS_DIR);
+async function getUsernameFromArgv(users) {
+  const arg = process.argv.slice(2);
+  if (arg.length !== 0 && arg[0].startsWith('-username')) {
+    const arg_username = arg[0].split('=').pop();
+    if (users.find((x) => x == arg_username)) {
+      return arg_username;
+    } else {
+      throw new Error('命令行参数-username不存在');
+    }
+  }
+}
+
+/**
+ * @description 从命令行选择用户名
+ * @param {string[]} users
+ * @returns {Promise<string>} 用户名
+ */
+async function selectUsername(users) {
   let resp = await inquirer.prompt([
     {
       type: 'list',
@@ -236,18 +254,51 @@ async function loadCookies() {
       choices: [...users, new inquirer.Separator(), '添加帐号'],
     },
   ]);
+  return resp.username;
+}
 
-  if (resp.username == '添加帐号') {
-    resp = await inquirer.prompt([
+/**
+ * @description 加载用户
+ * @param {string[]} users
+ * @returns {ReturnType<login>|Promise<string>}
+ */
+async function loadLocalUser(users) {
+  const username = await selectUsername(users);
+  if (username == '添加帐号') {
+    const resp = await inquirer.prompt([
       { type: 'input', message: '请输入用户名:', name: 'username' },
       { type: 'password', message: '请输入密码:', name: 'password' },
     ]);
     return login(resp);
   }
+  return username;
+}
 
-  const user = await fs.promises.readFile(path.join(USERS_DIR, resp.username), 'utf8').then(JSON.parse);
+/**
+ * @description 加载用户
+ * @param {string} username
+ * @returns {Promise<string>}
+ */
+async function loadCookies(username) {
+  const filepath = path.join(USERS_DIR, username);
+  if (!fs.existsSync(filepath)) {
+    throw new Error('本地缓存文件不存在');
+  }
+  const user = await fs.promises.readFile(filepath, 'utf8').then(JSON.parse);
   const isCookieActive = await checkCookies(user.cookie);
   return isCookieActive ? user.cookie : login(user);
+}
+
+/**
+ * @description 初始化
+ * @returns {Promise<boolean>}
+ */
+async function init() {
+  const users = await fs.promises.readdir(USERS_DIR);
+  const resp = (await getUsernameFromArgv(users)) || (await loadLocalUser(users));
+  const cookie = (typeof resp == 'object' && resp.cookie) || (await loadCookies(resp));
+  setCookie(cookie);
+  return true;
 }
 
 /**
@@ -293,8 +344,8 @@ function logPaddingPrefix(text, color = 'green') {
 }
 
 module.exports = {
+  init,
   login,
-  loadCookies,
   getCourseListData,
   getWorkList,
   getWorkParams,

@@ -5,7 +5,7 @@
  * @create: 2022-03-31 01:42:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-08 09:46:56
+ * @last-modified: 2022-04-12 07:08:49
  * -----
  */
 
@@ -13,15 +13,7 @@ const fs = require('fs');
 const table = require('table');
 const queue = require('./queue');
 
-const { setCookie } = require('./request');
-const {
-  loadCookies,
-  getCourseListData,
-  getWorkList,
-  getWorkParams,
-  logPaddingPrefix,
-  logWithColors,
-} = require('./utils');
+const { getCourseListData, getWorkList, getWorkParams, logPaddingPrefix, logWithColors, init } = require('./utils');
 
 const { USERS_DIR } = require('./config');
 const StatusCode = require('./enum/StatusCode');
@@ -34,7 +26,7 @@ const stream = table.createStream({
 
 (async () => {
   fs.existsSync(USERS_DIR) || fs.mkdirSync(USERS_DIR);
-  setCookie(await loadCookies()); // 加载帐号
+  await init(); // 初始化
   const courseListData = await getCourseListData(); // 获取课程列表
   let statistics = {}; // 统计信息
   for (const { courseName, courseLink } of courseListData) {
