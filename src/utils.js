@@ -5,7 +5,7 @@
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-12 07:07:21
+ * @last-modified: 2022-04-15 12:58:15
  * -----
  */
 
@@ -233,10 +233,11 @@ async function getUsernameFromArgv(users) {
   if (arg.length !== 0 && arg[0].startsWith('-username')) {
     const arg_username = arg[0].split('=').pop();
     if (users.find((x) => x == arg_username)) {
+      logPaddingPrefix('命令行参数快速启动', 'green');
       return arg_username;
-    } else {
-      throw new Error('命令行参数-username不存在');
     }
+    logPaddingPrefix('param -username error, 用户未登录', 'red');
+    process.exit();
   }
 }
 
@@ -277,7 +278,7 @@ async function loadLocalUser(users) {
 /**
  * @description 加载用户
  * @param {string} username
- * @returns {Promise<string>}
+ * @returns {Promise<{cookie:string}>}
  */
 async function loadCookies(username) {
   const filepath = path.join(USERS_DIR, username);
@@ -286,7 +287,7 @@ async function loadCookies(username) {
   }
   const user = await fs.promises.readFile(filepath, 'utf8').then(JSON.parse);
   const isCookieActive = await checkCookies(user.cookie);
-  return isCookieActive ? user.cookie : login(user);
+  return isCookieActive ? user : login(user);
 }
 
 /**
@@ -296,7 +297,7 @@ async function loadCookies(username) {
 async function init() {
   const users = await fs.promises.readdir(USERS_DIR);
   const resp = (await getUsernameFromArgv(users)) || (await loadLocalUser(users));
-  const cookie = (typeof resp == 'object' && resp.cookie) || (await loadCookies(resp));
+  const { cookie } = await loadCookies(resp);
   setCookie(cookie);
   return true;
 }
@@ -312,7 +313,7 @@ function parseCookies(headers) {
 
 /**
  * @description 获取类似 <span><span>abc</span>def</span> 中的 def
- * @param {Cheerio<Element>} element
+ * @param {import('cheerio').Cheerio<import('cheerio').Element>} element
  * @returns {string}
  */
 function getImmediateText(element) {
@@ -334,7 +335,7 @@ function logWithColors(obj, color = 'green') {
  * @param {keyof import('colors').Color} color
  */
 function logPaddingPrefix(text, color = 'green') {
-  const pad = 12;
+  const pad = 30;
   if (text.length < pad) {
     const padLength = pad - text.length - 1;
     const padText = ' '.repeat(padLength / 2);

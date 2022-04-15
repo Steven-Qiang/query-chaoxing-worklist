@@ -5,14 +5,14 @@
  * @create: 2022-03-30 05:59:38
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-02 11:14:51
+ * @last-modified: 2022-04-15 12:58:51
  * -----
  */
 
 const path = require('path');
 
 
-const LOG_PREFIX = '='.repeat(100);
+const LOG_PREFIX = '='.repeat(90);
 
 /**
  * 添加 'abc'.length == 3 的原因 骗过ncc编译 使其不更改路径
