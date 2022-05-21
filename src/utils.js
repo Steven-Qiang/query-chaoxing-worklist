@@ -5,7 +5,7 @@
  * @create: 2022-03-30 05:54:08
  * @author: qiangmouren (2962051004@qq.com)
  * -----
- * @last-modified: 2022-04-15 12:58:15
+ * @last-modified: 2022-05-21 01:55:22
  * -----
  */
 
@@ -71,7 +71,11 @@ async function getCourseListData() {
     }>} 
 */
 async function getWorkParams(courseLink) {
-  const stu = await instance.get(courseLink, { maxRedirects: 0 }).then(({ headers }) => instance.get(headers.location));
+  const stu = await instance.get(courseLink, { maxRedirects: 0 }).then(({ headers }) => {
+    if (!headers['location']) return null;
+    return instance.get(headers.location);
+  });
+  if (!stu) return null;
   const $ = cheerio.load(stu.data);
   const courseid = $('#courseid').val();
   const clazzid = $('#clazzid').val();
